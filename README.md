@@ -174,19 +174,6 @@ GROQ_API_KEY
 ```
 
 ---
-
-## 🧪 Running Tests
-
-Run the following command:
-
-```bash
-pytest test_moodmentor.py
-```
-
-The tests cover areas such as questionnaire scoring, recommendations, password hashing, and input sanitization.
-
----
-
 ## 🔐 Security
 
 * JWT-based authentication
