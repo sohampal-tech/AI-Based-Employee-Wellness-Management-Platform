@@ -1,4 +1,4 @@
-# 🌿 Mood Mentor – Employee Wellness Management Analytics
+# 🌿 Mood Mentor – Employee Wellness Management Analytics platform
 
 ## 📌 Project Overview
 
