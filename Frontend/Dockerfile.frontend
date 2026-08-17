@@ -1,0 +1,24 @@
+# ---- Streamlit frontend (UI only -- calls the backend over HTTP, no ML libs needed here except what app.py imports directly) ----
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libgl1 \
+        libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# app.py itself imports db/security/recommendations/auth/email_utils directly
+# (for saving mood logs, sanitizing input, etc.) -- not just via HTTP calls
+# to the backend -- so those modules need to be present in this image too.
+COPY db.py security.py recommendations.py auth.py email_utils.py app.py ./
+
+EXPOSE 8501
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:8501/_stcore/health', timeout=5).raise_for_status()"
+
+CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0", "--server.headless=true", "--server.enableCORS=false"]
