@@ -1,0 +1,33 @@
+# ---- FastAPI backend (NLP pipeline + auth + questionnaire + chat) ----
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# System deps: build tools for psycopg2/torch wheels, plus libs OpenCV/DeepFace need
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        libgl1 \
+        libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# spaCy's multilingual sentence model, used by nlp_pipeline.py
+RUN python -m spacy download xx_sent_ud_sm
+
+# Only the modules the backend actually imports -- keeps the image lean and
+# means a change to app.py (frontend) doesn't invalidate this image's cache.
+COPY db.py security.py recommendations.py auth.py email_utils.py nlp_pipeline.py backend.py ./
+
+EXPOSE 8000
+
+# Pre-download the BERT emotion model at build time (optional but avoids a
+# cold-start delay/timeout on the container's first real request). Comment
+# out if you'd rather keep the image smaller and pay the cost on first call.
+RUN python -c "from transformers import pipeline; pipeline('text-classification', model='SamLowe/roberta-base-go_emotions', top_k=None)" || true
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:8000/health', timeout=5).raise_for_status()"
+
+CMD ["uvicorn", "backend:app", "--host", "0.0.0.0", "--port", "8000"]
